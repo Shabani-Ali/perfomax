@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    image: perfomax-app
+    container_name: perfomax-app
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      - mysql
+      - redis
+      - rabbitmq
+    networks:
+      - perfomax-net
+
+  nginx:
+    image: nginx:alpine
+    container_name: perfomax-nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+    networks:
+      - perfomax-net
+
+  mysql:
+    image: mysql:8
+    container_name: perfomax-mysql
+    restart: always
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: perfomax
+      MYSQL_USER: perfouser
+      MYSQL_PASSWORD: secret
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - perfomax-net
+
+  redis:
+    image: redis:alpine
+    container_name: perfomax-redis
+    networks:
+      - perfomax-net
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: perfomax-rabbitmq
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: password
+    networks:
+      - perfomax-net
+
+networks:
+  perfomax-net:
+
+volumes:
+  mysql_data:
